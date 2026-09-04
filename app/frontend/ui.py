@@ -24,7 +24,7 @@ with st.sidebar:
             st.session_state.token = response.json().get("access_token")
             st.success("Successfully logged in!")
         else:
-            st.error("Login failed. Check you credentials.")
+            st.error("Login failed. Check your credentials.")
 
     st.divider()
 
@@ -37,14 +37,27 @@ with st.sidebar:
 
 
 if st.session_state.token and st.session_state.project_id:
+    
     st.markdown("### 📋 Task List")
-
+    
+    search_query = st.text_input(
+        "🔍 Semantic search:", 
+        placeholder="e.g. 'user interface', 'security issues' or 'database'"
+    )
+    
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
 
-    tasks_res = requests.get(
-        f"{API_URL}/projects/{st.session_state.project_id}/tasks/", 
-        headers=headers
-    )
+    if search_query:
+        tasks_res = requests.get(
+            f"{API_URL}/projects/{st.session_state.project_id}/tasks/search", 
+            headers=headers,
+            params={"q": search_query}
+        )
+    else:
+        tasks_res = requests.get(
+            f"{API_URL}/projects/{st.session_state.project_id}/tasks/", 
+            headers=headers
+        )
 
     if tasks_res.status_code == 200:
         tasks = tasks_res.json()
@@ -57,13 +70,11 @@ if st.session_state.token and st.session_state.project_id:
 
                 with col1:
                     is_checked = st.checkbox(" ", value=task["is_done"], key=f"task_{task['id']}")
-
                     if is_checked != task["is_done"]:
                         requests.patch(
-                                f"{API_URL}/projects/{st.session_state.project_id}/tasks/{task['id']}/toggle",
-                                headers=headers
-                            )
-
+                            f"{API_URL}/projects/{st.session_state.project_id}/tasks/{task['id']}/toggle",
+                            headers=headers
+                        )
                         st.rerun()
 
                 with col2:
@@ -71,24 +82,24 @@ if st.session_state.token and st.session_state.project_id:
                     st.markdown(title)
 
                     if task.get("description"):
-                        st.caption(task["Description"])
+                        st.caption(task["description"])
 
     else:
         st.error("Failed to fetch tasks from the server.")
+        
     st.markdown("---")
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    if prompt := st.chat_input("What should I do (e.g., 'Plan a release cycle for the new app)"):
+    if prompt := st.chat_input("What should I do (e.g., 'Plan a release cycle for the new app')"):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
             with st.spinner("AI is thinking..."):
-                headers = {"Authorization": f"Bearer {st.session_state.token}"}
                 payload = {"text": prompt}
 
                 res = requests.post(
@@ -98,15 +109,16 @@ if st.session_state.token and st.session_state.project_id:
                 )
 
                 if res.status_code == 200:
-                    tasks = res.json()
-                    response_text = f"Successfully created {len(tasks)} new tasks in the database!"
+                    new_tasks = res.json()
+                    response_text = f"Successfully created {len(new_tasks)} new tasks in the database!"
                     st.markdown(response_text)
-                    st.json(tasks)
+                    st.json(new_tasks)
                 else:
                     response_text = f"An error occurred: {res.text}"
                     st.error(response_text)
 
         st.session_state.messages.append({"role": "assistant", "content": response_text})
+        st.rerun()
 
 else:
-            st.info("Please log in and set a Project ID in the sidebar to start chatting with the AI.")
+    st.info("Please log in and set a Project ID in the sidebar to start chatting with the AI.")
