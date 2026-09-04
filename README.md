@@ -62,6 +62,8 @@ app/
 │   ├── user_service.py
 │   ├── llm_service.py         # Anthropic API integration, structured output
 │   └── embedding_service.py   # OpenAI API integration, text embeddings
+├── frontend/                # Streamlit UI
+│   └── ui.py
 └── main.py                   # app entrypoint
 
 alembic/                       # database migrations (schema versioning)
@@ -141,6 +143,12 @@ docker compose exec api python -m alembic upgrade head
 ```
 
 The API will be available at `http://localhost:8000`, with interactive docs at `http://localhost:8000/docs`.
+
+### Running the Frontend (Streamlit)
+
+```bash
+streamlit run app/frontend/ui.py
+```
 
 ### Usage Flow
 
