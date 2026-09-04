@@ -27,7 +27,10 @@ class LLMService:
             response = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=1024,
-                system="You are an expert technical project manager. Break down the user's input into logical, actionable, and clear tasks. Ensure all fields are filled accurately.",
+                system="You are an expert technical project manager. Break down the user's input into"
+                    "logical, actionable, and clear tasks. Ensure all fields, including both title and "
+                    "description, are fully filled out. Always generate the task titles and "
+                    "descriptions in the exact same language as the user's input text.",
                 tools=[tool_schema],
                 tool_choice={"type": "tool", "name": "create_tasks"},
                 messages=[

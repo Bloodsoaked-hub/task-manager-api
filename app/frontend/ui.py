@@ -66,7 +66,7 @@ if st.session_state.token and st.session_state.project_id:
             st.info("No tasks found. Ask the Agent to generate a plan!")
         else:
             for task in tasks:
-                col1, col2 = st.columns([0.1, 0.9])
+                col1, col2, col3 = st.columns([0.05, 0.85, 0.1])
 
                 with col1:
                     is_checked = st.checkbox(" ", value=task["is_done"], key=f"task_{task['id']}")
@@ -78,11 +78,33 @@ if st.session_state.token and st.session_state.project_id:
                         st.rerun()
 
                 with col2:
-                    title = f"~~{task['title']}~~" if task["is_done"] else f"**{task['title']}**"
-                    st.markdown(title)
+                    with st.expander(task["title"] if not task["is_done"] else f"~~{task['title']}~~"):
+                        new_title = st.text_input("Edit title", value=task["title"], key=f"title_{task['id']}")
+                        new_desc = st.text_area("Edit description", value=task.get("description") or "", key=f"desc_{task['id']}")
+                        
+                        if st.button("Save changes", key=f"save_{task['id']}"):
+                            res = requests.patch(
+                                f"{API_URL}/projects/{st.session_state.project_id}/tasks/{task['id']}/update",
+                                headers=headers,
+                                json={"title": new_title, "description": new_desc}
+                            )
+                            if res.status_code == 200:
+                                st.success("Updated!")
+                                st.rerun()
+                            else:
+                                st.error("Failed to update task.")
 
-                    if task.get("description"):
-                        st.caption(task["description"])
+                with col3:
+                    if st.button("🗑️", key=f"delete_{task['id']}"):
+                        del_res = requests.delete(
+                            f"{API_URL}/projects/{st.session_state.project_id}/tasks/{task['id']}",
+                            headers=headers
+                        )
+                        if del_res.status_code == 204:
+                            st.success("Task deleted!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to delete task.")
 
     else:
         st.error("Failed to fetch tasks from the server.")
