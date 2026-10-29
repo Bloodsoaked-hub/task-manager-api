@@ -1,5 +1,5 @@
-import streamlit as st
 import requests
+import streamlit as st
 
 API_URL = "http://localhost:8000"
 
@@ -8,8 +8,8 @@ st.title("🤖 AI Project Assistant")
 
 if "token" not in st.session_state:
     st.session_state.token = None
-if "project_id" not in st.session_state:
-    st.session_state.project_id = None
+if "project_id" not in st.session_state or st.session_state.project_id is None:
+    st.session_state.project_id = 1
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -20,7 +20,8 @@ with st.sidebar:
 
     if st.button("Log in"):
         response = requests.post(
-            f"{API_URL}/auth/login", json={"email": email, "password": password}
+            f"{API_URL}/auth/login",
+            json={"email": email, "password": password},
         )
         if response.status_code == 200:
             st.session_state.token = response.json().get("access_token")
@@ -32,15 +33,23 @@ with st.sidebar:
 
     if st.session_state.token:
         st.header("📂 Workspace")
-        project_id = st.text_input("Enter Project ID", value="1")
-        if st.button("Set Project"):
-            st.session_state.project_id = project_id
-            st.success(f"Active Project: {project_id}")
+
+        project_id = st.number_input(
+            "Enter Project ID",
+            min_value=1,
+            value=int(st.session_state.project_id),
+            step=1,
+        )
+        st.session_state.project_id = int(project_id)
+
+        st.caption(f"Active Project ID: `{st.session_state.project_id}`")
 
         st.divider()
         st.header("📄 RAG Knowledge Base")
 
-        uploaded_file = st.file_uploader("Upload document (.txt)", type=["txt"])
+        uploaded_file = st.file_uploader(
+            "Upload document (.txt)", type=["txt"]
+        )
 
         if uploaded_file is not None:
             if st.button("Upload to AWS S3"):
@@ -53,23 +62,22 @@ with st.sidebar:
                     )
                 }
 
-                with st.spinner("Uploading to S3..."):
+                with st.spinner("Processing & Vectorizing..."):
                     upload_res = requests.post(
-                        f"{API_URL}/documents/upload",
+                        f"{API_URL}/projects/{st.session_state.project_id}/documents/upload",
                         headers=headers,
                         files=files,
                     )
 
                     if upload_res.status_code == 200:
                         res_data = upload_res.json()
-                        st.success("Document stored in S3!")
+                        st.success("Document vectorized & stored in S3!")
                         st.caption(f"**Key:** `{res_data['s3_key']}`")
                         st.caption(
-                            f"**Length:** {res_data['character_count']} chars"
+                            f"**Chunks created:** {res_data['chunks_count']}"
                         )
                     else:
                         st.error(f"Upload failed: {upload_res.text}")
-
 
 if st.session_state.token and st.session_state.project_id:
 
@@ -90,7 +98,8 @@ if st.session_state.token and st.session_state.project_id:
         )
     else:
         tasks_res = requests.get(
-            f"{API_URL}/projects/{st.session_state.project_id}/tasks/", headers=headers
+            f"{API_URL}/projects/{st.session_state.project_id}/tasks/",
+            headers=headers,
         )
 
     if tasks_res.status_code == 200:
@@ -115,10 +124,14 @@ if st.session_state.token and st.session_state.project_id:
 
                 with col2:
                     with st.expander(
-                        task["title"] if not task["is_done"] else f"~~{task['title']}~~"
+                        task["title"]
+                        if not task["is_done"]
+                        else f"~~{task['title']}~~"
                     ):
                         new_title = st.text_input(
-                            "Edit title", value=task["title"], key=f"title_{task['id']}"
+                            "Edit title",
+                            value=task["title"],
+                            key=f"title_{task['id']}",
                         )
                         new_desc = st.text_area(
                             "Edit description",
@@ -126,11 +139,16 @@ if st.session_state.token and st.session_state.project_id:
                             key=f"desc_{task['id']}",
                         )
 
-                        if st.button("Save changes", key=f"save_{task['id']}"):
+                        if st.button(
+                            "Save changes", key=f"save_{task['id']}"
+                        ):
                             res = requests.patch(
-                                f"{API_URL}/projects/{st.session_state.project_id}/tasks/{task['id']}/update",
+                                f"{API_URL}/projects/{st.session_state.project_id}/tasks/{task['id']}",
                                 headers=headers,
-                                json={"title": new_title, "description": new_desc},
+                                json={
+                                    "title": new_title,
+                                    "description": new_desc,
+                                },
                             )
                             if res.status_code == 200:
                                 st.success("Updated!")

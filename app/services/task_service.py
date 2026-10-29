@@ -2,14 +2,15 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.services.llm_service import LLMService
-from app.repositories.task import TaskRepository
 from app.services.project_service import ProjectService
+from app.repositories.task import TaskRepository
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.embedding_service import EmbeddingService
-
+from app.models.document_chunk import DocumentChunk
 
 class TaskService:
     def __init__(self, db: Session):
+        self.db = db
         self.repo = TaskRepository(db)
         self.project_service = ProjectService(db)
         self.llm_service = LLMService()
@@ -31,7 +32,26 @@ class TaskService:
     def generate_tasks_from_text(self, project_id: int, text: str, owner_id: int):
         self.project_service.get_project(project_id, owner_id)
 
-        parsed_tasks = self.llm_service.parse_tasks_from_text(text)
+        prompt_embedding = self.embedding_service.generate_embedding(text)
+
+        relevant_chunks = (
+            self.db.query(DocumentChunk)
+            .filter(DocumentChunk.project_id == project_id)
+            .order_by(DocumentChunk.embedding.l2_distance(prompt_embedding))
+            .limit(3)
+            .all()
+        )
+
+        context = (
+            "\n----\n".join([chunk.content for chunk in relevant_chunks])
+            if relevant_chunks
+            else ""
+        )
+
+        parsed_tasks = self.llm_service.parse_tasks_from_text(
+            text,
+            context=context
+        )
 
         created_tasks = []
         for task_data in parsed_tasks:
