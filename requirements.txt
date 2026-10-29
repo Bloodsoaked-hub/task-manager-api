@@ -2,8 +2,7 @@ fastapi
 uvicorn[standard]
 
 sqlalchemy
-psycopg2-binary
-
+psycopg[binary]
 python-dotenv
 
 alembic
@@ -14,6 +13,7 @@ bcrypt==4.0.1
 python-jose[cryptography]
 
 email-validator
+python-multipart
 
 pytest
 httpx
@@ -23,3 +23,5 @@ anthropic
 pgvector
 
 openai
+
+boto3

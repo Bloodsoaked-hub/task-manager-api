@@ -37,6 +37,39 @@ with st.sidebar:
             st.session_state.project_id = project_id
             st.success(f"Active Project: {project_id}")
 
+        st.divider()
+        st.header("📄 RAG Knowledge Base")
+
+        uploaded_file = st.file_uploader("Upload document (.txt)", type=["txt"])
+
+        if uploaded_file is not None:
+            if st.button("Upload to AWS S3"):
+                headers = {"Authorization": f"Bearer {st.session_state.token}"}
+                files = {
+                    "file": (
+                        uploaded_file.name,
+                        uploaded_file.getvalue(),
+                        uploaded_file.type,
+                    )
+                }
+
+                with st.spinner("Uploading to S3..."):
+                    upload_res = requests.post(
+                        f"{API_URL}/documents/upload",
+                        headers=headers,
+                        files=files,
+                    )
+
+                    if upload_res.status_code == 200:
+                        res_data = upload_res.json()
+                        st.success("Document stored in S3!")
+                        st.caption(f"**Key:** `{res_data['s3_key']}`")
+                        st.caption(
+                            f"**Length:** {res_data['character_count']} chars"
+                        )
+                    else:
+                        st.error(f"Upload failed: {upload_res.text}")
+
 
 if st.session_state.token and st.session_state.project_id:
 
