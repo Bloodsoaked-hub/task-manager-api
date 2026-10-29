@@ -4,8 +4,9 @@ from pgvector.sqlalchemy import Vector
 
 from app.core.database import Base
 
+
 class DocumentChunk(Base):
-    __tablename__  = "document_chunks"
+    __tablename__ = "document_chunks"
 
     id = Column(Integer, primary_key=True, index=True)
     project_id = Column(

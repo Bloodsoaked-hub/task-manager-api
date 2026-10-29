@@ -47,9 +47,7 @@ with st.sidebar:
         st.divider()
         st.header("📄 RAG Knowledge Base")
 
-        uploaded_file = st.file_uploader(
-            "Upload document (.txt)", type=["txt"]
-        )
+        uploaded_file = st.file_uploader("Upload document (.txt)", type=["txt"])
 
         if uploaded_file is not None:
             if st.button("Upload to AWS S3"):
@@ -73,9 +71,7 @@ with st.sidebar:
                         res_data = upload_res.json()
                         st.success("Document vectorized & stored in S3!")
                         st.caption(f"**Key:** `{res_data['s3_key']}`")
-                        st.caption(
-                            f"**Chunks created:** {res_data['chunks_count']}"
-                        )
+                        st.caption(f"**Chunks created:** {res_data['chunks_count']}")
                     else:
                         st.error(f"Upload failed: {upload_res.text}")
 
@@ -124,9 +120,7 @@ if st.session_state.token and st.session_state.project_id:
 
                 with col2:
                     with st.expander(
-                        task["title"]
-                        if not task["is_done"]
-                        else f"~~{task['title']}~~"
+                        task["title"] if not task["is_done"] else f"~~{task['title']}~~"
                     ):
                         new_title = st.text_input(
                             "Edit title",
@@ -139,9 +133,7 @@ if st.session_state.token and st.session_state.project_id:
                             key=f"desc_{task['id']}",
                         )
 
-                        if st.button(
-                            "Save changes", key=f"save_{task['id']}"
-                        ):
+                        if st.button("Save changes", key=f"save_{task['id']}"):
                             res = requests.patch(
                                 f"{API_URL}/projects/{st.session_state.project_id}/tasks/{task['id']}",
                                 headers=headers,

@@ -24,7 +24,6 @@ async def upload_document_for_rag(
     raw_text = s3_service.read_rag_document(s3_key)
     chunks = embedding_service.chunk_text(raw_text)
 
-
     chunk_objects = [
         DocumentChunk(
             project_id=project_id,

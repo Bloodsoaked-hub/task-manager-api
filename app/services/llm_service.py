@@ -10,9 +10,7 @@ client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 
 class LLMService:
-    def parse_tasks_from_text(
-        self, text: str, context: str = ""
-    ) -> list[TaskCreate]:
+    def parse_tasks_from_text(self, text: str, context: str = "") -> list[TaskCreate]:
         tool_schema = {
             "name": "create_tasks",
             "description": "Extract a list of actionable technical tasks based on user request and project documentation",
@@ -27,7 +25,7 @@ class LLMService:
                 "required": ["tasks"],
             },
         }
-        
+
         if context:
             user_content = (
                 f"USER INSTRUCTION:\n{text}\n\n"

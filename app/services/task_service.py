@@ -8,6 +8,7 @@ from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.embedding_service import EmbeddingService
 from app.models.document_chunk import DocumentChunk
 
+
 class TaskService:
     def __init__(self, db: Session):
         self.db = db
@@ -48,10 +49,7 @@ class TaskService:
             else ""
         )
 
-        parsed_tasks = self.llm_service.parse_tasks_from_text(
-            text,
-            context=context
-        )
+        parsed_tasks = self.llm_service.parse_tasks_from_text(text, context=context)
 
         created_tasks = []
         for task_data in parsed_tasks:
