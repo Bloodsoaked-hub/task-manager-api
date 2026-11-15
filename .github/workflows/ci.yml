@@ -47,4 +47,4 @@ jobs:
           OPENAI_API_KEY: sk-fake-key-for-ci
           ANTHROPIC_API_KEY: sk-ant-fake-key-for-ci
         run: |
-          pytest
+          PYTHONPATH=. pytest
