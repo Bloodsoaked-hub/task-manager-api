@@ -1,49 +1,65 @@
 # 🚀 Task Manager API (AI-Powered with RAG)
 
+![Backend CI](https://github.com/Bloodsoaked-hub/task-manager-api/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Framework-009688.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791.svg)
 ![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED.svg)
-![AWS](https://img.shields.io/badge/AWS-Cloud_Ready-FF9900.svg?logo=amazon-aws)
+![AWS](https://img.shields.io/badge/AWS-EC2_%7C_RDS_%7C_S3-FF9900.svg?logo=amazon-aws)
 
 ## 📌 Overview
 
-A production-ready RESTful API for managing projects and tasks, integrating **Retrieval-Augmented Generation (RAG)** and **Large Language Models (LLMs)**. Built with FastAPI and clean architecture principles, it enforces strict data ownership while allowing users to perform semantic (meaning-based) searches and natural language task generation. Configured for local development via Docker and production deployment on **AWS**.
+A production-ready RESTful API for managing projects and tasks, integrating **Retrieval-Augmented Generation (RAG)** and **Large Language Models (LLMs)**. Built with FastAPI and strict layered architecture, it enforces resource-level authorization while enabling semantic (meaning-based) search and context-aware task generation grounded in project documentation. Containerized with Docker and configured for **AWS** deployment with automated **CI/CD**.
 
 ## ✨ Key Features
 
-- **AI-Powered Task Generation:** Send a plain-language description and get back structured, saved tasks. Uses Claude's tool-use (structured output) and Pydantic validation.
-- **Semantic Search (RAG):** Fast and accurate task retrieval using `pgvector` and OpenAI `text-embedding-3-small`. Searches rank results by meaning (cosine distance) combined with standard SQL filters.
-- **Robust Security:** JWT-based authentication (bcrypt). Authorization is checked *before* any paid external API call is made, preventing billing abuse.
-- **Cloud-Ready / AWS:** Fully containerized architecture, structured for seamless deployment to AWS infrastructure (EC2, RDS).
-- **Clean Architecture:** Strict separation of concerns ensuring highly testable and maintainable code.
+- **Context-Aware AI Task Generation (RAG):** Converts plain-language notes into structured, persisted tasks. Retrieves relevant project document chunks via vector similarity search (`pgvector`) to ground Anthropic Claude's output in actual project context, enforcing strict schema validation via LLM tool-calling and Pydantic.
+- **Semantic Search:** High-precision task and document retrieval powered by OpenAI `text-embedding-3-small` and PostgreSQL `pgvector` distance operators, combined with relational SQL ownership filters.
+- **Cost-Guard Security:** JWT authentication (`bcrypt` password hashing) with strict ownership verification executed *before* any external LLM or embedding API call is triggered—preventing unauthorized billing abuse.
+- **Automated Testing & CI/CD:** Integration test suite (`pytest`) executed automatically on every push via GitHub Actions against an ephemeral `pgvector/pgvector:pg16` service container.
+- **AWS Cloud-Ready:** Fully containerized multi-service setup engineered for deployment on AWS infrastructure (EC2, RDS for PostgreSQL, S3 for document storage).
 
-## 🏗️ Architecture
+## 🏗️ Architecture & Engineering Decisions
 
-The project follows a rigorous layered architecture to keep responsibilities separated and code testable:
+The codebase enforces a strict unidirectional dependency flow to decouple HTTP transport, business rules, and persistence:
 
 `Router → Service → Repository → Model`
 
-- **Routers (`app/api/routes/`):** Handle HTTP requests/responses, delegate to services. No business logic.
-- **Services (`app/services/`):** Business logic, authorization checks, external API integrations, exception handling.
-- **Repositories (`app/repositories/`):** Database queries only (`SQLAlchemy`), no business logic.
-- **Models (`app/models/`):** SQLAlchemy ORM definitions.
-- **Schemas (`app/schemas/`):** Pydantic models for request/response validation.
+- **Routers (`app/api/routes/`):** HTTP request/response handling, dependency injection, and status codes. Zero business logic.
+- **Services (`app/services/`):** Core business logic, ownership guards, RAG orchestration, and external LLM/Embedding API clients.
+- **Repositories (`app/repositories/`):** Encapsulated `SQLAlchemy` queries and vector similarity operations.
+- **Models (`app/models/`):** Relational & vector (`VECTOR(1536)`) ORM definitions managed via Alembic migrations.
+- **Schemas (`app/schemas/`):** Pydantic v2 contracts for strict input/output validation.
 
-## 📡 API Endpoints (Core)
+### Key Architectural Choices
 
-| Method | Endpoint | Description | 
-| --- | --- | --- | 
-| `POST` | `/auth/register` | Register a new user | 
-| `POST` | `/auth/login` | Log in, returns JWT access token | 
-| `POST` | `/projects/` | Create a project | 
-| `POST` | `/projects/{project_id}/tasks/` | Create a task in a project | 
-| `GET` | `/projects/{project_id}/tasks/search?query=...` | Semantic search for tasks by meaning (RAG) | 
-| `POST` | `/projects/{project_id}/tasks/generate` | Generate tasks from a natural language description (AI) | 
+- **Single-Database Vector Strategy (`pgvector`):** Kept relational metadata and 1536-dimensional embeddings inside PostgreSQL instead of introducing a separate vector database, eliminating distributed transaction overhead and simplifying transactional consistency.
+- **Deterministic LLM Outputs via Tool Calling:** Used Anthropic Claude's native tool-use interface rather than raw text/JSON parsing to guarantee type-safe task extraction.
 
-*(Full interactive documentation covering all CRUD operations is available at `/docs` via Swagger UI)*
+## 📡 Core API Endpoints
 
-## 🚀 Quick Start (One-Click Setup)
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/auth/register` | Register a new user account |
+| `POST` | `/auth/login` | Authenticate and issue a JWT access token |
+| `POST` | `/projects/` | Create a new project workspace |
+| `POST` | `/projects/{project_id}/tasks/` | Create a task and generate its vector embedding |
+| `GET` | `/projects/{project_id}/tasks/search?q=...` | Semantic search across project tasks by meaning |
+| `POST` | `/projects/{project_id}/tasks/generate` | Generate structured tasks from text using project RAG context |
+
+*(Full interactive OpenAPI/Swagger documentation covering all CRUD endpoints is available at `/docs`)*
+
+## 🧪 Testing & CI/CD
+
+Every push and pull request to `main` triggers the GitHub Actions workflow (`.github/workflows/ci.yml`), which spins up a `pgvector/pgvector:pg16` container, enables the `vector` extension, and runs the full `pytest` suite with mocked LLM/embedding providers.
+
+To run tests locally against a running PostgreSQL instance:
+
+```bash
+PYTHONPATH=. pytest
+```
+
+## 🚀 Quick Start (Local Setup)
 
 ### Prerequisites
 
@@ -51,16 +67,14 @@ The project follows a rigorous layered architecture to keep responsibilities sep
 - [Anthropic API key](https://console.anthropic.com)
 - [OpenAI API key](https://platform.openai.com)
 
-### Installation & Execution (Terminal)
-
-Copy and paste the following block into your terminal. It will clone the repository, generate the `.env` file template, spin up the database and API in the background, and apply migrations:
+### Installation & Execution
 
 ```bash
-# 1. Clone and enter the repository
+# 1. Clone the repository
 git clone https://github.com/Bloodsoaked-hub/task-manager-api.git
 cd task-manager-api
 
-# 2. Create environment variables (REPLACE KEYS BEFORE USING AI FEATURES)
+# 2. Configure environment variables (replace placeholder API keys)
 cat <<EOF> .env
 DATABASE_URL=postgresql://user:password@db:5432/task_manager
 SECRET_KEY=your-secret-key-here
@@ -70,12 +84,12 @@ ANTHROPIC_API_KEY=your-anthropic-api-key-here
 OPENAI_API_KEY=your-openai-api-key-here
 EOF
 
-# 3. Build and run containers in the background
+# 3. Build and start containers
 docker compose up -d --build
 
-# 4. Wait for DB to initialize, then apply database migrations
+# 4. Apply Alembic database migrations
 sleep 5
 docker compose exec api python -m alembic upgrade head
 ```
 
-**Note:** The API will be available at `http://localhost:8000`. Access the Swagger documentation at `http://localhost:8000/docs` to start testing endpoints.
+Once running, the API is accessible at `http://localhost:8000` and interactive Swagger UI at `http://localhost:8000/docs`.
