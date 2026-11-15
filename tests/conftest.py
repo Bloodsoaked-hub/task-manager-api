@@ -74,5 +74,6 @@ def mock_embedding_service():
     fake_embedding = [0.1] * 1536
     with patch(
         "app.services.task_service.EmbeddingService.generate_embedding",
+        return_value=fake_embedding,
     ):
         yield
