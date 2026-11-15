@@ -13,14 +13,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
-from app.main import app
-from app.core.database import Base
-from app.api.deps.db import get_db
-
 SQLALCHEMY_DATABASE_URL = os.environ["DATABASE_URL"]
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+with engine.connect() as conn:
+    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    conn.commit()
+
+from app.main import app
+from app.core.database import Base
+from app.api.deps.db import get_db
 
 
 @pytest.fixture()
@@ -70,6 +74,5 @@ def mock_embedding_service():
     fake_embedding = [0.1] * 1536
     with patch(
         "app.services.task_service.EmbeddingService.generate_embedding",
-        return_value=fake_embedding,
     ):
         yield
